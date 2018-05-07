@@ -14,7 +14,7 @@ import pypandoc
 logger = logging.getLogger(__name__)
 
 pandoc_fmt_map = {
-    'md': 'commonmark',
+    'md': 'commonmark+yaml_metadata_block',
     'pdc': 'markdown'
 }
 
