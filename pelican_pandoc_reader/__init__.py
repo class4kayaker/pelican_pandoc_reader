@@ -39,14 +39,15 @@ class PandocReader(BaseReader):
 
     @staticmethod
     def create_metadata_template():
-        with tempfile.NamedTemporaryFile(mode="w",
-                                         suffix='.template',
-                                         delete=False) as f:
-            f.write(metadata_template_contents)
-            fpath = f.name
-        PandocReader.METADATA_TEMPLATE = fpath
-        logger.debug("Metadata template file at '%s'", fpath)
-        atexit.register(PandocReader.delete_metadata_template)
+        if PandocReader.METADATA_TEMPLATE is None:
+            with tempfile.NamedTemporaryFile(mode="w",
+                                             suffix='.template',
+                                             delete=False) as f:
+                f.write(metadata_template_contents)
+                fpath = f.name
+            PandocReader.METADATA_TEMPLATE = fpath
+            logger.debug("Metadata template file at '%s'", fpath)
+            atexit.register(PandocReader.delete_metadata_template)
 
     @staticmethod
     def delete_metadata_template():
