@@ -91,9 +91,10 @@ class PandocReader(BaseReader):
             extra_args=['--template', self.METADATA_TEMPLATE]
         )
 
-        _metadata = json.loads(metadata_json)
         metadata = dict()
-        for key, value in _metadata.items():
+        for key, value in json.loads(metadata_json).items():
+            # Make key lower case to match processor definitions.
+            key = key.lower()
             metadata[key] = self.process_metadata(key, value)
 
         return metadata
