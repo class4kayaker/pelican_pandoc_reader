@@ -14,8 +14,8 @@ import pypandoc
 logger = logging.getLogger(__name__)
 
 pandoc_fmt_map = {
-    'md': 'commonmark+yaml_metadata_block',
-    'pdc': 'markdown'
+    'md': 'markdown_mmd',  # Multi-Markdown
+    'pdc': 'markdown'  # Pandoc Markdown
 }
 
 pelican_url_directive = re.compile(
