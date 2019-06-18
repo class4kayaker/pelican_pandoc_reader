@@ -113,8 +113,9 @@ class PandocReader(BaseReader):
         _metadata = json.loads(metadata_json)
         metadata = dict()
         for key, value in _metadata.items():
+            if key == 'author' and isinstance(value, list):
+                key = 'authors'
             metadata[key] = self.process_metadata(key, value)
-
         return metadata
 
     def process_settings(self, ext):
