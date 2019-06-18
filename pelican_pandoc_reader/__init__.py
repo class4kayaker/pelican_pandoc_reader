@@ -70,7 +70,7 @@ class PandocReader(BaseReader):
     def read(self, filename):
         # Get file extension
         _, ext = os.path.splitext(filename)
-        fmt = self.pandoc_fmt_map.get(ext) if ext else None
+        fmt = self.pandoc_fmt_map.get(ext[1:]) if ext else None
 
         self.process_settings(ext)
 
