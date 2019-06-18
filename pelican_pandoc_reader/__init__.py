@@ -35,6 +35,7 @@ def un_urlencode(match):
 
 class PandocReader(BaseReader):
     enabled = bool(pypandoc)
+    file_extensions = [key for key in default_pandoc_fmt_map]
     pandoc_fmt_map = default_pandoc_fmt_map
     output_format = 'html5'
 
@@ -48,6 +49,8 @@ class PandocReader(BaseReader):
                     del PandocReader.pandoc_fmt_map[key]
             else:
                 PandocReader.pandoc_fmt_map[key] = fmt_map[key]
+        PandocReader.file_extensions = [
+            key for key in PandocReader.pandoc_fmt_map]
 
     @staticmethod
     def create_metadata_template():
