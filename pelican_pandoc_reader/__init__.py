@@ -35,7 +35,6 @@ def un_urlencode(match):
 
 class PandocReader(BaseReader):
     enabled = bool(pypandoc)
-    file_extensions = [key for key in default_pandoc_fmt_map]
     pandoc_fmt_map = default_pandoc_fmt_map
     output_format = 'html5'
 
@@ -43,8 +42,12 @@ class PandocReader(BaseReader):
 
     @staticmethod
     def set_extension_formats(fmt_map):
-        PandocReader.file_extensions = [key for key in fmt_map]
-        PandocReader.pandoc_fmt_map = fmt_map
+        for key in fmt_map:
+            if fmt_map[key] is None:
+                if key in PandocReader.pandoc_fmt_map:
+                    del PandocReader.pandoc_fmt_map[key]
+            else:
+                PandocReader.pandoc_fmt_map[key] = fmt_map[key]
 
     @staticmethod
     def create_metadata_template():
@@ -119,13 +122,13 @@ class PandocReader(BaseReader):
 def add_reader(readers):
     logger.debug("Setting extensions mapping")
     PandocReader.set_extension_formats(
-        readers.settings.get("PANDOC_FORMAT_MAP", default_pandoc_fmt_map))
+        readers.settings.get("PANDOC_FORMAT_MAP", {}))
 
     logger.debug("Creating metadata template file")
     PandocReader.create_metadata_template()
 
     logger.debug("Adding PandocReader to readers")
-    for ext in PandocReader.file_extensions:
+    for ext in PandocReader.pandoc_fmt_map:
         readers.reader_classes[ext] = PandocReader
 
 
