@@ -20,6 +20,10 @@ This is done by creating a temporary file with the necessary contents, then remo
 Options
 -------
 
+PANDOC_FORMAT_MAP
+   Mapping of file extensions to Pandoc names for desired formats
+   (i.e. ``markdown+footnotes`` for native markdown with footnotes extension)
+
 PANDOC_ARGS
     Extra command line arguments to be supplied to Pandoc
 
