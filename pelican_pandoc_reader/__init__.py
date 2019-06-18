@@ -9,11 +9,14 @@ import logging
 import tempfile
 import atexit
 
-import pypandoc
+try:
+    import pypandoc
+except ImportError:
+    pypandoc = None
 
 logger = logging.getLogger(__name__)
 
-pandoc_fmt_map = {
+default_pandoc_fmt_map = {
     'md': 'markdown_mmd',  # Multi-Markdown
     'pdc': 'markdown'  # Pandoc Markdown
 }
@@ -31,11 +34,17 @@ def un_urlencode(match):
 
 
 class PandocReader(BaseReader):
-    enabled = True
-    file_extensions = [key for key in pandoc_fmt_map]
+    enabled = bool(pypandoc)
+    file_extensions = [key for key in default_pandoc_fmt_map]
+    pandoc_fmt_map = default_pandoc_fmt_map
     output_format = 'html5'
 
     METADATA_TEMPLATE = None
+
+    @staticmethod
+    def set_extension_formats(fmt_map):
+        PandocReader.file_extensions = [key for key in fmt_map]
+        PandocReader.pandoc_fmt_map = fmt_map
 
     @staticmethod
     def create_metadata_template():
@@ -59,35 +68,39 @@ class PandocReader(BaseReader):
             os.remove(fpath)
 
     def read(self, filename):
-        # Get meta data
+        # Get file extension
         _, ext = os.path.splitext(filename)
-        fmt = pandoc_fmt_map.get(ext[1:]) if ext else None
+        fmt = self.pandoc_fmt_map.get(ext) if ext else None
 
-        metadata = self.read_metadata(filename, format=fmt)
+        self.process_settings(ext)
+
+        # Get meta data
+        metadata = self.read_metadata(filename, fmt=fmt)
 
         # Get content
-        self.process_settings()
-
-        with pelican_open(filename) as fp:
-            content = pypandoc.convert_text(
-                fp, to=self.output_format,
-                format=fmt,
-                extra_args=self.extra_args, filters=self.filters
-            )
-
-        content = self.process_plugins(
-            pelican_url_directive.sub(un_urlencode, content)
-        )
+        content = self.read_content(filename, fmt=fmt)
 
         return content, metadata
 
     def process_plugins(self, content):
         return content
 
-    def read_metadata(self, path, format=None):
+    def read_content(self, path, fmt=None):
+        with pelican_open(path) as fp:
+            content = pypandoc.convert_text(
+                fp, to=self.output_format,
+                format=fmt,
+                extra_args=self.extra_args, filters=self.filters
+            )
+
+        return self.process_plugins(
+            pelican_url_directive.sub(un_urlencode, content)
+        )
+
+    def read_metadata(self, path, fmt=None):
         metadata_json = pypandoc.convert_file(
             path, to=self.output_format,
-            format=format,
+            format=fmt,
             extra_args=['--template', self.METADATA_TEMPLATE]
         )
 
@@ -98,19 +111,24 @@ class PandocReader(BaseReader):
 
         return metadata
 
-    def process_settings(self):
+    def process_settings(self, ext):
         self.extra_args = self.settings.get('PANDOC_ARGS', [])
         self.filters = self.settings.get('PANDOC_EXTENSIONS', [])
 
 
 def add_reader(readers):
+    logger.debug("Setting extensions mapping")
+    PandocReader.set_extension_formats(
+        readers.settings.get("PANDOC_FORMAT_MAP", default_pandoc_fmt_map))
+
     logger.debug("Creating metadata template file")
     PandocReader.create_metadata_template()
+
     logger.debug("Adding PandocReader to readers")
     for ext in PandocReader.file_extensions:
         readers.reader_classes[ext] = PandocReader
 
 
 def register():
-    logger.debug("Registering pandoc_reader plugin.")
+    logger.debug("Registering pelican_pandoc_reader plugin.")
     signals.readers_init.connect(add_reader)
