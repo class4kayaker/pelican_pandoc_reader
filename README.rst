@@ -24,6 +24,9 @@ PANDOC_FORMAT_MAP
    Mapping of file extensions to Pandoc names for desired formats
    (i.e. ``markdown+footnotes`` for native markdown with footnotes extension)
 
+   Note that if a file extension is mapped to None, then the Pandoc reader will
+   not handle that format, even if it would by default.
+
 PANDOC_ARGS
     Extra command line arguments to be supplied to Pandoc
 
