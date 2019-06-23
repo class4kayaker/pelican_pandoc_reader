@@ -78,7 +78,7 @@ class PandocReader(BaseReader):
                 fpath = f.name
             PandocReader.METADATA_TEMPLATE = fpath
             logger.debug("Metadata template file at '%s'", fpath)
-            atexit.register(PandocReader.delete_metadata_template)
+            signals.finalized.connect(PandocReader.delete_metadata_template)
 
     @staticmethod
     def delete_metadata_template():
