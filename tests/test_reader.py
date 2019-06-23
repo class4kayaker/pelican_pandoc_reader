@@ -64,6 +64,9 @@ def standard_pandoc_reader():
 
 @pytest.mark.parametrize("test_settings,test_filename,test_format", [
     ({}, "test_file.pdc", "markdown"),
+    ({}, "test_file.md", "markdown_mmd"),
+    ({"pdc": "markdown+footnotes"}, "test_file.pdc", "markdown+footnotes"),
+    ({"fake": "markdown+footnotes"}, "test_file.fake", "markdown+footnotes"),
 ])
 def test_read_fn(standard_pandoc_reader, mocker,
                  test_settings, test_filename, test_format):
