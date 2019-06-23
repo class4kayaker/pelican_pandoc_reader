@@ -14,6 +14,13 @@ try:
 except ImportError:
     pypandoc = None
 
+# Type checking imports
+try:
+    from typing import List
+except ImportError:
+    pass
+
+
 logger = logging.getLogger(__name__)
 
 default_pandoc_fmt_map = {
@@ -38,6 +45,10 @@ class PandocReader(BaseReader):
     file_extensions = [key for key in default_pandoc_fmt_map]
     pandoc_fmt_map = default_pandoc_fmt_map.copy()
     output_format = 'html5'
+
+    # Pandoc cli call settings
+    extra_args = []  # type: List[str]
+    filters = []  # type: List[str]
 
     METADATA_TEMPLATE = None
 
@@ -83,8 +94,6 @@ class PandocReader(BaseReader):
         _, ext = os.path.splitext(filename)
         fmt = self.pandoc_fmt_map.get(ext[1:]) if ext else None
 
-        self.process_settings(ext)
-
         # Get meta data
         metadata = self.read_metadata(filename, fmt=fmt)
 
@@ -123,15 +132,17 @@ class PandocReader(BaseReader):
 
         return metadata
 
-    def process_settings(self, ext):
-        self.extra_args = self.settings.get('PANDOC_ARGS', [])
-        self.filters = self.settings.get('PANDOC_EXTENSIONS', [])
+    @staticmethod
+    def process_settings(settings):
+        PandocReader.extra_args = settings.get('PANDOC_ARGS', [])
+        PandocReader.filters = settings.get('PANDOC_EXTENSIONS', [])
+        PandocReader.set_extension_formats(
+            settings.get("PANDOC_FORMAT_MAP", {}))
 
 
 def add_reader(readers):
-    logger.debug("Setting extensions mapping")
-    PandocReader.set_extension_formats(
-        readers.settings.get("PANDOC_FORMAT_MAP", {}))
+    logger.debug("Reading Pelican settings")
+    PandocReader.process_settings(readers.settings)
 
     logger.debug("Creating metadata template file")
     PandocReader.create_metadata_template()
