@@ -104,9 +104,14 @@ def test_metadata_template(mocker, test_name):
     assert PandocReader.METADATA_TEMPLATE is None
 
 
-@pytest.fixture
-def standard_pandoc_reader(mocker):
-    mock_settings = {}  # type: Dict[str, str]
+@pytest.fixture(params=[
+    {},
+    {"PANDOC_ARGS": ["--test"]},
+    {"PANDOC_EXTENSIONS": ["--test"]},
+    {"PANDOC_FORMAT_MAP": {"test": "test_fmt"}},
+])
+def standard_pandoc_reader(mocker, request):
+    test_settings = request.param
 
     tmp_file_fn = mocker.patch("tempfile.NamedTemporaryFile",
                                new_callable=mocker.mock_open)
@@ -115,7 +120,8 @@ def standard_pandoc_reader(mocker):
     mocker.patch("pelican.signals.finalized.connect")
     mocker.patch("os.remove")
 
-    yield pelican_pandoc_reader.PandocReader(mock_settings)
+    pelican_pandoc_reader.PandocReader.process_settings(test_settings)
+    yield pelican_pandoc_reader.PandocReader(test_settings)
 
 
 @pytest.mark.parametrize("test_settings,test_filename,test_format", [
