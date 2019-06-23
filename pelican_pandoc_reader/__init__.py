@@ -1,6 +1,6 @@
-from pelican.readers import BaseReader
-from pelican import signals
-from pelican.utils import pelican_open
+import pelican.readers
+import pelican.signals
+import pelican.utils
 
 import os
 import re
@@ -39,7 +39,7 @@ def un_urlencode(match):
     return '"{'+match.group('what')+'}'+match.group('remainder')+'"'
 
 
-class PandocReader(BaseReader):
+class PandocReader(pelican.readers.BaseReader):
     enabled = bool(pypandoc)
     file_extensions = [key for key in default_pandoc_fmt_map]
     pandoc_fmt_map = default_pandoc_fmt_map.copy()
@@ -68,6 +68,13 @@ class PandocReader(BaseReader):
             key for key in PandocReader.pandoc_fmt_map]
 
     @staticmethod
+    def process_settings(settings):
+        PandocReader.extra_args = settings.get('PANDOC_ARGS', [])
+        PandocReader.filters = settings.get('PANDOC_EXTENSIONS', [])
+        PandocReader.set_extension_formats(
+            settings.get("PANDOC_FORMAT_MAP", {}))
+
+    @staticmethod
     def create_metadata_template():
         if PandocReader.METADATA_TEMPLATE is None:
             with tempfile.NamedTemporaryFile(mode="w",
@@ -77,7 +84,8 @@ class PandocReader(BaseReader):
                 fpath = f.name
             PandocReader.METADATA_TEMPLATE = fpath
             logger.debug("Metadata template file at '%s'", fpath)
-            signals.finalized.connect(PandocReader.delete_metadata_template)
+            pelican.signals.finalized.connect(
+                PandocReader.delete_metadata_template)
 
     @staticmethod
     def delete_metadata_template(pelican_obj):
@@ -105,7 +113,7 @@ class PandocReader(BaseReader):
         return content
 
     def read_content(self, path, fmt=None):
-        with pelican_open(path) as fp:
+        with pelican.utils.pelican_open(path) as fp:
             content = pypandoc.convert_text(
                 fp, to=self.output_format,
                 format=fmt,
@@ -131,13 +139,6 @@ class PandocReader(BaseReader):
 
         return metadata
 
-    @staticmethod
-    def process_settings(settings):
-        PandocReader.extra_args = settings.get('PANDOC_ARGS', [])
-        PandocReader.filters = settings.get('PANDOC_EXTENSIONS', [])
-        PandocReader.set_extension_formats(
-            settings.get("PANDOC_FORMAT_MAP", {}))
-
 
 def add_reader(readers):
     logger.debug("Reading Pelican settings")
@@ -153,4 +154,4 @@ def add_reader(readers):
 
 def register():
     logger.debug("Registering pelican_pandoc_reader plugin.")
-    signals.readers_init.connect(add_reader)
+    pelican.signals.readers_init.connect(add_reader)

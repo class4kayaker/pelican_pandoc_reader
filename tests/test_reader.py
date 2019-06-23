@@ -69,12 +69,39 @@ def test_remove_and_reset_extensions():
 def test_settings(mocker, test_settings,
                   test_args, test_extensions, test_fmt_map):
     PandocReader = pelican_pandoc_reader.PandocReader
-    mocker.patch("pelican_pandoc_reader.PandocReader.set_extension_formats")
+    mock_set = mocker.patch(
+        "pelican_pandoc_reader.PandocReader.set_extension_formats")
     PandocReader.process_settings(test_settings)
     assert PandocReader.extra_args == test_args
     assert PandocReader.filters == test_extensions
-    PandocReader.set_extension_formats.assert_called_once_with(
+    mock_set.assert_called_once_with(
         test_fmt_map)
+
+
+@pytest.mark.parametrize("test_name", [
+    "/fake/root/test_temp_path.template",
+    "/fake/root/test_temp_path2.template",
+])
+def test_metadata_template(mocker, test_name):
+    PandocReader = pelican_pandoc_reader.PandocReader
+
+    tmp_file_fn = mocker.patch("tempfile.NamedTemporaryFile",
+                               new_callable=mocker.mock_open)
+    tmp_file_fn().name = test_name
+    tmp_file_fn.reset_mock()
+    mock_connect = mocker.patch("pelican.signals.finalized.connect")
+    mock_remove = mocker.patch("os.remove")
+
+    assert PandocReader.METADATA_TEMPLATE is None
+    PandocReader.create_metadata_template()
+    assert PandocReader.METADATA_TEMPLATE == test_name
+    tmp_file_fn.assert_called_once_with(
+        mode="w", suffix=".template", delete=False)
+    tmp_file_fn().write.assert_called_once_with("""$meta-json$""")
+    mock_connect.assert_called_once_with(PandocReader.delete_metadata_template)
+    PandocReader.delete_metadata_template(None)
+    mock_remove.assert_called_once_with(test_name)
+    assert PandocReader.METADATA_TEMPLATE is None
 
 
 @pytest.fixture
