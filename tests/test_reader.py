@@ -56,6 +56,24 @@ def test_remove_and_reset_extensions():
     test_default_extensions()
 
 
+@pytest.mark.parametrize("test_settings,test_args,test_extensions,test_fmt_map", [
+    ({}, [], [], {}),
+    ({"PANDOC_ARGS": ["--test"]}, ["--test"], [], {}),
+    ({"PANDOC_EXTENSIONS": ["--test"]}, [], ["--test"], {}),
+    ({"PANDOC_FORMAT_MAP": {"test": "test_fmt"}}, [], [],
+     {"test": "test_fmt"}),
+])
+def test_settings(mocker, test_settings,
+                  test_args, test_extensions, test_fmt_map):
+    PandocReader = pelican_pandoc_reader.PandocReader
+    mocker.patch("pelican_pandoc_reader.PandocReader.set_extension_formats")
+    PandocReader.process_settings(test_settings)
+    assert PandocReader.extra_args == test_args
+    assert PandocReader.filters == test_extensions
+    PandocReader.set_extension_formats.assert_called_once_with(
+        test_fmt_map)
+
+
 @pytest.fixture
 def standard_pandoc_reader():
     mock_settings = {}  # type: Dict[str, str]
