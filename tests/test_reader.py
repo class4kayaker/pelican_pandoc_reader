@@ -105,9 +105,17 @@ def test_metadata_template(mocker, test_name):
 
 
 @pytest.fixture
-def standard_pandoc_reader():
+def standard_pandoc_reader(mocker):
     mock_settings = {}  # type: Dict[str, str]
-    return pelican_pandoc_reader.PandocReader(mock_settings)
+
+    tmp_file_fn = mocker.patch("tempfile.NamedTemporaryFile",
+                               new_callable=mocker.mock_open)
+    tmp_file_fn().name = "/fake/tmp/path.template"
+    tmp_file_fn.reset_mock()
+    mocker.patch("pelican.signals.finalized.connect")
+    mocker.patch("os.remove")
+
+    yield pelican_pandoc_reader.PandocReader(mock_settings)
 
 
 @pytest.mark.parametrize("test_settings,test_filename,test_format", [
@@ -133,3 +141,45 @@ def test_read_fn(standard_pandoc_reader, mocker,
         test_filename, fmt=test_format)
     assert content == mock_content
     assert metadata == mock_metadata
+
+
+@pytest.mark.parametrize("test_data,test_output", [
+    ("", ""),
+    ('"%7Bstatic%7Dpath"', '"{static}path"'),
+])
+def test_read_content(mocker, standard_pandoc_reader, test_data, test_output):
+    test_fpath = "/fake/test/path.pdc"
+    test_fmt = "fake_fmt"
+    mock_pel_open = mocker.patch("pelican.utils.pelican_open",
+                                 new_callable=mocker.mock_open,
+                                 read_data=test_data)
+    mock_pypandoc_convert = mocker.patch("pypandoc.convert_text",
+                                         return_value=test_data)
+
+    content = standard_pandoc_reader.read_content(test_fpath, fmt=test_fmt)
+    mock_pel_open.assert_called_once_with(test_fpath)
+    mock_pypandoc_convert.assert_called_once_with(
+        mock_pel_open(), to=standard_pandoc_reader.output_format,
+        format=test_fmt,
+        extra_args=standard_pandoc_reader.extra_args,
+        filters=standard_pandoc_reader.filters)
+    assert content == test_output
+
+
+@pytest.mark.parametrize("test_data,test_output", [
+    ('{}', {}),
+    ('{"title": "Title"}', {"title": "Title"}),
+    ('{"Title": "Title"}', {"title": "Title"}),
+])
+def test_read_metadata(mocker, standard_pandoc_reader, test_data, test_output):
+    test_fpath = "/fake/test/path.pdc"
+    test_fmt = "fake_fmt"
+    mock_pypandoc_convert = mocker.patch("pypandoc.convert_file",
+                                         return_value=test_data)
+
+    content = standard_pandoc_reader.read_metadata(test_fpath, fmt=test_fmt)
+    mock_pypandoc_convert.assert_called_once_with(
+        test_fpath, to=standard_pandoc_reader.output_format,
+        format=test_fmt,
+        extra_args=['--template', standard_pandoc_reader.METADATA_TEMPLATE])
+    assert content == test_output
