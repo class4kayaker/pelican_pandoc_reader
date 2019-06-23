@@ -36,10 +36,15 @@ def un_urlencode(match):
 class PandocReader(BaseReader):
     enabled = bool(pypandoc)
     file_extensions = [key for key in default_pandoc_fmt_map]
-    pandoc_fmt_map = default_pandoc_fmt_map
+    pandoc_fmt_map = default_pandoc_fmt_map.copy()
     output_format = 'html5'
 
     METADATA_TEMPLATE = None
+
+    @staticmethod
+    def set_default_formats():
+        PandocReader.file_extensions = [key for key in default_pandoc_fmt_map]
+        PandocReader.pandoc_fmt_map = default_pandoc_fmt_map.copy()
 
     @staticmethod
     def set_extension_formats(fmt_map):
