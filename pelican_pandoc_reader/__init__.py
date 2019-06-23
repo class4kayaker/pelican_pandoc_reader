@@ -7,7 +7,6 @@ import re
 import json
 import logging
 import tempfile
-import atexit
 
 try:
     import pypandoc
@@ -81,7 +80,7 @@ class PandocReader(BaseReader):
             signals.finalized.connect(PandocReader.delete_metadata_template)
 
     @staticmethod
-    def delete_metadata_template():
+    def delete_metadata_template(pelican_obj):
         if PandocReader.METADATA_TEMPLATE is not None:
             logger.debug("Deleting metadata template file at '%s'",
                          PandocReader.METADATA_TEMPLATE)
