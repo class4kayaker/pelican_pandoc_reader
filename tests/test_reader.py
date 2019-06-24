@@ -133,7 +133,7 @@ def standard_pandoc_reader(mocker, request):
 def test_read_fn(standard_pandoc_reader, mocker,
                  test_settings, test_filename, test_format):
     mock_content = "TESTING CONTENT 123"
-    mock_metadata = "{'title': 'Mock data'}"
+    mock_metadata = {'title': 'Mock data'}
     mocker.patch("pelican_pandoc_reader.PandocReader.read_content",
                  return_value=mock_content)
     mocker.patch("pelican_pandoc_reader.PandocReader.read_metadata",
