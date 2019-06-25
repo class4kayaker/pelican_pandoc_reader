@@ -1,6 +1,6 @@
 *.pyc
 /dist/
-/*.egg-info
+*.egg-info
 /.tox/
 /.coverage
 /htmlcov/

@@ -56,6 +56,18 @@ def test_remove_and_reset_extensions():
     test_default_extensions()
 
 
+def test_remove_unincluded_extensions():
+    removed_fmt_extension = "fake"
+    additional_extension_settings = {
+        removed_fmt_extension: None
+    }
+    PandocReader = pelican_pandoc_reader.PandocReader
+    PandocReader.set_extension_formats(additional_extension_settings)
+    assert removed_fmt_extension not in PandocReader.file_extensions
+    assert removed_fmt_extension not in PandocReader.pandoc_fmt_map
+    test_default_extensions()
+
+
 @pytest.mark.parametrize(
     "test_settings,test_args,"
     "test_extensions,test_fmt_map", [
@@ -99,6 +111,34 @@ def test_metadata_template(mocker, test_name):
         mode="w", suffix=".template", delete=False)
     tmp_file_fn().write.assert_called_once_with("""$meta-json$""")
     mock_connect.assert_called_once_with(PandocReader.delete_metadata_template)
+    PandocReader.delete_metadata_template(None)
+    mock_remove.assert_called_once_with(test_name)
+    assert PandocReader.METADATA_TEMPLATE is None
+
+
+@pytest.mark.parametrize("test_name", [
+    "/fake/root/test_temp_path.template",
+    "/fake/root/test_temp_path2.template",
+])
+def test_double_metadata_template(mocker, test_name):
+    PandocReader = pelican_pandoc_reader.PandocReader
+
+    tmp_file_fn = mocker.patch("tempfile.NamedTemporaryFile",
+                               new_callable=mocker.mock_open)
+    tmp_file_fn().name = test_name
+    tmp_file_fn.reset_mock()
+    mock_connect = mocker.patch("pelican.signals.finalized.connect")
+    mock_remove = mocker.patch("os.remove")
+
+    assert PandocReader.METADATA_TEMPLATE is None
+    PandocReader.create_metadata_template()
+    PandocReader.create_metadata_template()
+    assert PandocReader.METADATA_TEMPLATE == test_name
+    tmp_file_fn.assert_called_once_with(
+        mode="w", suffix=".template", delete=False)
+    tmp_file_fn().write.assert_called_once_with("""$meta-json$""")
+    mock_connect.assert_called_once_with(PandocReader.delete_metadata_template)
+    PandocReader.delete_metadata_template(None)
     PandocReader.delete_metadata_template(None)
     mock_remove.assert_called_once_with(test_name)
     assert PandocReader.METADATA_TEMPLATE is None
