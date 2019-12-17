@@ -23,27 +23,25 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 default_pandoc_fmt_map = {
-    'md': 'markdown_mmd',  # Multi-Markdown
-    'pdc': 'markdown'  # Pandoc Markdown
+    "md": "markdown_mmd",  # Multi-Markdown
+    "pdc": "markdown",  # Pandoc Markdown
 }
 
-pelican_url_directive = re.compile(
-    r'"\%7B(?P<what>[a-z]+)\%7D(?P<remainder>[^"]*)"'
-)
+pelican_url_directive = re.compile(r'"\%7B(?P<what>[a-z]+)\%7D(?P<remainder>[^"]*)"')
 
 
 metadata_template_contents = """$meta-json$"""
 
 
 def un_urlencode(match):
-    return '"{'+match.group('what')+'}'+match.group('remainder')+'"'
+    return '"{' + match.group("what") + "}" + match.group("remainder") + '"'
 
 
 class PandocReader(pelican.readers.BaseReader):
     enabled = bool(pypandoc)
     file_extensions = [key for key in default_pandoc_fmt_map]
     pandoc_fmt_map = default_pandoc_fmt_map.copy()
-    output_format = 'html5'
+    output_format = "html5"
 
     # Pandoc cli call settings
     extra_args = []  # type: List[str]
@@ -64,34 +62,33 @@ class PandocReader(pelican.readers.BaseReader):
                     del PandocReader.pandoc_fmt_map[key]
             else:
                 PandocReader.pandoc_fmt_map[key] = fmt_map[key]
-        PandocReader.file_extensions = [
-            key for key in PandocReader.pandoc_fmt_map]
+        PandocReader.file_extensions = [key for key in PandocReader.pandoc_fmt_map]
 
     @staticmethod
     def process_settings(settings):
-        PandocReader.extra_args = settings.get('PANDOC_ARGS', [])
-        PandocReader.filters = settings.get('PANDOC_EXTENSIONS', [])
-        PandocReader.set_extension_formats(
-            settings.get("PANDOC_FORMAT_MAP", {}))
+        PandocReader.extra_args = settings.get("PANDOC_ARGS", [])
+        PandocReader.filters = settings.get("PANDOC_EXTENSIONS", [])
+        PandocReader.set_extension_formats(settings.get("PANDOC_FORMAT_MAP", {}))
 
     @staticmethod
     def create_metadata_template():
         if PandocReader.METADATA_TEMPLATE is None:
-            with tempfile.NamedTemporaryFile(mode="w",
-                                             suffix='.template',
-                                             delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".template", delete=False
+            ) as f:
                 f.write(metadata_template_contents)
                 fpath = f.name
             PandocReader.METADATA_TEMPLATE = fpath
             logger.debug("Metadata template file at '%s'", fpath)
-            pelican.signals.finalized.connect(
-                PandocReader.delete_metadata_template)
+            pelican.signals.finalized.connect(PandocReader.delete_metadata_template)
 
     @staticmethod
     def delete_metadata_template(pelican_obj):
         if PandocReader.METADATA_TEMPLATE is not None:
-            logger.debug("Deleting metadata template file at '%s'",
-                         PandocReader.METADATA_TEMPLATE)
+            logger.debug(
+                "Deleting metadata template file at '%s'",
+                PandocReader.METADATA_TEMPLATE,
+            )
             fpath = PandocReader.METADATA_TEMPLATE
             PandocReader.METADATA_TEMPLATE = None
             os.remove(fpath)
@@ -115,20 +112,21 @@ class PandocReader(pelican.readers.BaseReader):
     def read_content(self, path, fmt=None):
         with pelican.utils.pelican_open(path) as fp:
             content = pypandoc.convert_text(
-                fp, to=self.output_format,
+                fp,
+                to=self.output_format,
                 format=fmt,
-                extra_args=self.extra_args, filters=self.filters
+                extra_args=self.extra_args,
+                filters=self.filters,
             )
 
-        return self.process_plugins(
-            pelican_url_directive.sub(un_urlencode, content)
-        )
+        return self.process_plugins(pelican_url_directive.sub(un_urlencode, content))
 
     def read_metadata(self, path, fmt=None):
         metadata_json = pypandoc.convert_file(
-            path, to=self.output_format,
+            path,
+            to=self.output_format,
             format=fmt,
-            extra_args=['--template', self.METADATA_TEMPLATE]
+            extra_args=["--template", self.METADATA_TEMPLATE],
         )
 
         metadata = dict()
