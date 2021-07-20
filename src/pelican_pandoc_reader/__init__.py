@@ -1,5 +1,5 @@
 import pelican.readers
-import pelican.signals
+from pelican import signals
 import pelican.utils
 
 import os
@@ -80,7 +80,7 @@ class PandocReader(pelican.readers.BaseReader):
                 fpath = f.name
             PandocReader.METADATA_TEMPLATE = fpath
             logger.debug("Metadata template file at '%s'", fpath)
-            pelican.signals.finalized.connect(PandocReader.delete_metadata_template)
+            signals.finalized.connect(PandocReader.delete_metadata_template)
 
     @staticmethod
     def delete_metadata_template(pelican_obj):
@@ -152,4 +152,4 @@ def add_reader(readers):
 
 def register():
     logger.debug("Registering pelican_pandoc_reader plugin.")
-    pelican.signals.readers_init.connect(add_reader)
+    signals.readers_init.connect(add_reader)
